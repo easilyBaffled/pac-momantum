@@ -45,14 +45,15 @@ const unitVectors = {
 
 const engine = Engine.create();
 engine.enableSleeping = true;
-
+engine.world.gravity = vectors.zero;
 const render = Render.create({
     element: document.body,
     engine,
     options: {
         width: world.width,
         height: world.height,
-        wireframes: false
+        wireframes: false,
+        showAngleIndicator: true
     }
 });
 
