@@ -9,12 +9,37 @@ import {
     Events
 } from 'matter-js';
 import $ from 'jquery';
-
-import { colors, lighter } from './colors';
-
+import { colors, lighter, darker } from './colors';
+/**********
+    Util
+ ***********/
 console.clear();
 console.ident = val => (console.log(val), val);
 
+const withDefault = (obj, defaultFunc) =>
+    new Proxy(obj, {
+        get: (target, name) =>
+            Reflect.get(target, name) || defaultFunc(name, target)
+    });
+
+const setVelocity = vector => target => Body.setVelocity(target, vector);
+
+const applyForceAtTarget = vector => target =>
+    Body.applyForce(target, target.position, vector);
+
+const isCollisionWith = self => handlersDict => event => {
+    const { bodyA, bodyB } = event.pairs.find(
+        ({ bodyA, bodyB }) =>
+            bodyA.label === self.label || bodyB.label === self.label
+    );
+    const target = bodyA === self ? bodyB : bodyA;
+    handlersDict[target.label] &&
+        handlersDict[target.label].bind(self)(target, event);
+};
+
+/************
+    Set Up
+ *************/
 const createWorld = (width, height) => ({
     width,
     height,
@@ -41,7 +66,7 @@ const Wall = (x, y, width, height, options = {}) =>
         y,
         width,
         height,
-        Object.assign(options, { isStatic: true })
+        Object.assign(options, { isStatic: true, label: 'wall' })
     );
 
 const world = createWorld(400, 400);
@@ -93,37 +118,92 @@ var bottomWall = Wall(
     world.width + world.unit,
     world.unit * 4
 );
+
+/****************
+    Play Space
+ *****************/
+
 // bottomWall.restitution = 2;
 var ball = Bodies.circle(
     world.centerX,
     world.centerY,
     world.unit * 2,
     {
+        friction: 0.05,
+        frictionStatic: 0.7,
+        restitution: 0.9,
         label: 'ball',
         density: world.unit,
-        fillStyle: colors.yellow
+        render: {
+            fillStyle: darker(colors.yellow, 10)
+        }
     },
     20
 );
 
-var pellet = Bodies.circle(
-    world.centerX + 20,
-    world.centerY + 20,
-    world.unit,
+ball.collisionHandler = isCollisionWith(ball)({
+    pellet() {
+        setVelocity(Vector.mult(this.velocity, world.unit / 3))(this);
+    } // best keep the multiplier small, world.unit sends it off screen fast // setVelocity works much better than applyForce, not sure why
+});
+
+const makePellet = (x, y) => {
+    const pellet = Bodies.circle(
+        x,
+        y,
+        world.unit,
+        {
+            render: {
+                fillStyle: lighter(colors.yellow, 10)
+            },
+            label: 'pellet',
+            isSensor: true // prevents ball from bouncing off the pellet
+            // isStatic: true // unclear if this helps in this case
+        },
+        20
+    );
+
+    pellet.collisionHandler = isCollisionWith(pellet)({
+        ball() {
+            Composite.remove(engine.world, this);
+        }
+    });
+
+    return pellet;
+};
+
+var ghost = Bodies.circle(
+    world.centerX,
+    world.centerY + 100,
+    world.unit * 2,
     {
-        fillStyle: lighter(colors.yellow),
-        label: 'pellet',
-        isStatic: true
+        friction: 0.05,
+        frictionStatic: 0.7,
+        restitution: 0.9,
+        label: 'ghost',
+        density: world.unit,
+        render: {
+            fillStyle: colors.red
+        }
     },
     20
 );
 
-ball.friction = 0.05;
-ball.frictionAir = 0.001;
-ball.restitution = 0.9;
+ghost.collisionHandler = isCollisionWith(ghost)({
+    wall() {
+        console.log(Vector.magnitude(this.velocity));
+        if (Vector.magnitude(this.velocity) > 3) {
+            Composite.remove(engine.world, this);
+        }
+    }
+});
 
 World.add(engine.world, [
-    pellet,
+    makePellet(world.centerX, world.centerY + 20),
+    makePellet(world.centerX, world.centerY + 40),
+    makePellet(world.centerX, world.centerY + 60),
+    makePellet(world.centerX, world.centerY + 80),
+    ghost,
     topWall,
     leftWall,
     rightWall,
@@ -134,43 +214,31 @@ World.add(engine.world, [
 Engine.run(engine);
 Render.run(render);
 
-const setVelocity = vector => target => Body.setVelocity(target, vector);
-
-const applyForceAtTarget = vector => target =>
-    Body.applyForce(target, target.position, vector);
-
 document.addEventListener('keyup', ({ key }) => {
-    const applyVelocity =
-        key === 'ArrowUp'
-            ? applyForceAtTarget({ x: 0, y: -world.unit * 2 })
-            : key === 'ArrowDown'
-              ? applyForceAtTarget({ x: 0, y: world.unit * 2 })
-              : key === 'ArrowLeft'
-                ? applyForceAtTarget({ x: -world.unit * 2, y: 0 })
-                : key === 'ArrowRight'
-                  ? applyForceAtTarget({ x: world.unit * 2, y: 0 })
-                  : applyForceAtTarget(unitVectors.zero);
+    const magnitudeMult = 1.5;
+
+    const getDirForce = withDefault(
+        {
+            ArrowUp: () =>
+                applyForceAtTarget({ x: 0, y: -world.unit * magnitudeMult }),
+            ArrowDown: () =>
+                applyForceAtTarget({ x: 0, y: world.unit * magnitudeMult }),
+            ArrowLeft: () =>
+                applyForceAtTarget({ x: -world.unit * magnitudeMult, y: 0 }),
+            ArrowRight: () =>
+                applyForceAtTarget({ x: world.unit * magnitudeMult, y: 0 })
+        },
+        () => applyForceAtTarget(unitVectors.zero)
+    );
+
+    const applyVelocity = getDirForce[key]();
 
     applyVelocity(ball);
 });
 
-Events.on(engine, 'collisionStart', function(event) {
-    var pairs = event.pairs;
-    const pair = event.pairs.find(
-        pair =>
-            (pair.bodyA.label === 'ball' && pair.bodyB.label === 'pellet') ||
-            (pair.bodyB.label === 'ball' && pair.bodyA.label === 'pellet')
-    );
-    if (pair) {
-        console.log('HIT');
-        const pellet = pair.bodyA.label === 'pellet' ? pair.bodyA : pair.bodyB;
-        Composite.remove(engine.world, pellet);
-    }
-    // // change object colours to show those starting a collision
-    // for (var i = 0; i < pairs.length; i++) {
-    //     var pair = pairs[i];
-    //     console.log(pair);
-    //     pair.bodyA.render.fillStyle = '#ffff00';
-    //     pair.bodyB.render.fillStyle = '#00ffff';
-    // }
-});
+Events.on(engine, 'collisionStart', event =>
+    event.pairs.forEach(({ bodyA, bodyB }) => {
+        bodyA.collisionHandler && bodyA.collisionHandler(event);
+        bodyB.collisionHandler && bodyB.collisionHandler(event);
+    })
+);
