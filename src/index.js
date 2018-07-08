@@ -1,4 +1,13 @@
-import { Engine, Render, World, Bodies, Body, Vector } from 'matter-js';
+import {
+    Composite,
+    Engine,
+    Render,
+    World,
+    Bodies,
+    Body,
+    Vector,
+    Events
+} from 'matter-js';
 import $ from 'jquery';
 
 console.clear();
@@ -61,18 +70,18 @@ var topWall = Wall(
     world.centerX,
     world.top,
     world.width + world.unit,
-    world.unit * 2
+    world.unit * 4
 );
 var leftWall = Wall(
     world.left,
     world.centerY,
-    world.unit * 2,
+    world.unit * 4,
     world.height + world.unit
 );
 var rightWall = Wall(
     world.right,
     world.centerY,
-    world.unit * 2,
+    world.unit * 4,
     world.height + world.unit
 );
 
@@ -80,7 +89,7 @@ var bottomWall = Wall(
     world.centerX,
     world.bottom,
     world.width + world.unit,
-    world.unit * 2
+    world.unit * 4
 );
 // bottomWall.restitution = 2;
 var ball = Bodies.circle(
@@ -88,16 +97,36 @@ var ball = Bodies.circle(
     world.centerY,
     world.unit * 2,
     {
+        label: 'ball',
         density: world.unit
     },
     20
 );
 
+var pellet = Bodies.circle(
+    world.centerX + 20,
+    world.centerY + 20,
+    world.unit,
+    {
+        fillStyle: '#ffff00',
+        label: 'pellet',
+        isStatic: true
+    },
+    20
+);
+
 ball.friction = 0.05;
-ball.frictionAir = 0.0005;
+ball.frictionAir = 0.001;
 ball.restitution = 0.9;
 
-World.add(engine.world, [topWall, leftWall, rightWall, ball, bottomWall]);
+World.add(engine.world, [
+    pellet,
+    topWall,
+    leftWall,
+    rightWall,
+    ball,
+    bottomWall
+]);
 
 Engine.run(engine);
 Render.run(render);
@@ -110,14 +139,35 @@ const applyForceAtTarget = vector => target =>
 document.addEventListener('keyup', ({ key }) => {
     const applyVelocity =
         key === 'ArrowUp'
-            ? applyForceAtTarget({ x: 0, y: -world.unit * 4 })
+            ? applyForceAtTarget({ x: 0, y: -world.unit * 2 })
             : key === 'ArrowDown'
-              ? applyForceAtTarget({ x: 0, y: world.unit * 4 })
+              ? applyForceAtTarget({ x: 0, y: world.unit * 2 })
               : key === 'ArrowLeft'
-                ? applyForceAtTarget({ x: -world.unit * 4, y: 0 })
+                ? applyForceAtTarget({ x: -world.unit * 2, y: 0 })
                 : key === 'ArrowRight'
-                  ? applyForceAtTarget({ x: world.unit * 4, y: 0 })
+                  ? applyForceAtTarget({ x: world.unit * 2, y: 0 })
                   : applyForceAtTarget(unitVectors.zero);
 
     applyVelocity(ball);
+});
+
+Events.on(engine, 'collisionStart', function(event) {
+    var pairs = event.pairs;
+    const pair = event.pairs.find(
+        pair =>
+            (pair.bodyA.label === 'ball' && pair.bodyB.label === 'pellet') ||
+            (pair.bodyB.label === 'ball' && pair.bodyA.label === 'pellet')
+    );
+    if (pair) {
+        console.log('HIT');
+        const pellet = pair.bodyA.label === 'pellet' ? pair.bodyA : pair.bodyB;
+        Composite.remove(engine.world, pellet);
+    }
+    // // change object colours to show those starting a collision
+    // for (var i = 0; i < pairs.length; i++) {
+    //     var pair = pairs[i];
+    //     console.log(pair);
+    //     pair.bodyA.render.fillStyle = '#ffff00';
+    //     pair.bodyB.render.fillStyle = '#00ffff';
+    // }
 });
