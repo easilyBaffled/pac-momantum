@@ -9,6 +9,7 @@ import {
     Events
 } from 'matter-js';
 import $ from 'jquery';
+import { clone } from 'lodash';
 import { colors, lighter, darker } from './colors';
 /**********
     Util
@@ -23,6 +24,12 @@ const withDefault = (obj, defaultFunc) =>
     });
 
 const setVelocity = vector => target => Body.setVelocity(target, vector);
+
+const applyVelocity = vector => target =>
+    Body.setVelocity(
+        target,
+        console.ident(Vector.add(vector, target.velocity))
+    );
 
 const applyForceAtTarget = vector => target =>
     Body.applyForce(target, target.position, vector);
@@ -60,14 +67,31 @@ const vectors = {
     zero: Vector.create(0, 0)
 };
 
-const Wall = (x, y, width, height, options = {}) =>
-    Bodies.rectangle(
+const Wall = (x, y, width, height, options = {}) => {
+    const wall = Bodies.rectangle(
         x,
         y,
         width,
         height,
-        Object.assign(options, { isStatic: true, label: 'wall' })
+        Object.assign(options, {
+            isStatic: true,
+            label: 'wall',
+            render: { fillStyle: colors.blue }
+        })
     );
+
+    wall.collisionHandler = isCollisionWith(wall)({
+        ghost() {
+            const originalRender = clone(this.render);
+            this.render.fillStyle = lighter(colors.blue, 50);
+            this.render.lineWidth = 3;
+            this.render.strokeStyle = '#fff';
+            setTimeout(() => (this.render = originalRender), 200);
+        }
+    });
+
+    return wall;
+};
 
 const world = createWorld(400, 400);
 
@@ -219,21 +243,27 @@ document.addEventListener('keyup', ({ key }) => {
 
     const getDirForce = withDefault(
         {
-            ArrowUp: () =>
-                applyForceAtTarget({ x: 0, y: -world.unit * magnitudeMult }),
-            ArrowDown: () =>
-                applyForceAtTarget({ x: 0, y: world.unit * magnitudeMult }),
-            ArrowLeft: () =>
-                applyForceAtTarget({ x: -world.unit * magnitudeMult, y: 0 }),
-            ArrowRight: () =>
-                applyForceAtTarget({ x: world.unit * magnitudeMult, y: 0 })
+            ArrowUp: applyForceAtTarget({
+                x: 0,
+                y: -world.unit * magnitudeMult
+            }),
+            ArrowDown: applyForceAtTarget({
+                x: 0,
+                y: world.unit * magnitudeMult
+            }),
+            ArrowLeft: applyForceAtTarget({
+                x: -world.unit * magnitudeMult,
+                y: 0
+            }),
+            ArrowRight: applyForceAtTarget({
+                x: world.unit * magnitudeMult,
+                y: 0
+            })
         },
-        () => applyForceAtTarget(unitVectors.zero)
+        applyForceAtTarget(unitVectors.zero)
     );
-
-    const applyVelocity = getDirForce[key]();
-
-    applyVelocity(ball);
+    console.log(ball.velocity);
+    getDirForce[key](ball);
 });
 
 Events.on(engine, 'collisionStart', event =>

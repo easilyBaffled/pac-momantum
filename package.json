@@ -11,6 +11,8 @@
         "hex-to-hsl": "1.0.2",
         "hsl-to-hex": "1.0.0",
         "jquery": "3.3.1",
+        "lodas": "1.2.0",
+        "lodash": "4.17.10",
         "matter-js": "0.14.2",
         "ramda": "0.25.0"
     },
