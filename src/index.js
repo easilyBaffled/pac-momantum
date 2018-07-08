@@ -10,6 +10,8 @@ import {
 } from 'matter-js';
 import $ from 'jquery';
 
+import { colors, lighter } from './colors';
+
 console.clear();
 console.ident = val => (console.log(val), val);
 
@@ -98,7 +100,8 @@ var ball = Bodies.circle(
     world.unit * 2,
     {
         label: 'ball',
-        density: world.unit
+        density: world.unit,
+        fillStyle: colors.yellow
     },
     20
 );
@@ -108,7 +111,7 @@ var pellet = Bodies.circle(
     world.centerY + 20,
     world.unit,
     {
-        fillStyle: '#ffff00',
+        fillStyle: lighter(colors.yellow),
         label: 'pellet',
         isStatic: true
     },

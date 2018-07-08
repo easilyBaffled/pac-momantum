@@ -1,17 +1,19 @@
 {
-  "name": "parcel-sandbox",
-  "version": "1.0.0",
-  "description": "Simple Parcel Sandbox",
-  "main": "index.html",
-  "scripts": {
-    "start": "parcel index.html --open",
-    "build": "parcel build index.html"
-  },
-  "dependencies": {
-    "jquery": "3.3.1",
-    "matter-js": "0.14.2"
-  },
-  "devDependencies": {
-    "parcel-bundler": "^1.6.1"
-  }
+    "name": "parcel-sandbox",
+    "version": "1.0.0",
+    "description": "Simple Parcel Sandbox",
+    "main": "index.html",
+    "scripts": {
+        "start": "parcel index.html --open",
+        "build": "parcel build index.html"
+    },
+    "dependencies": {
+        "hex-to-hsl": "1.0.2",
+        "hsl-to-hex": "1.0.0",
+        "jquery": "3.3.1",
+        "matter-js": "0.14.2"
+    },
+    "devDependencies": {
+        "parcel-bundler": "^1.6.1"
+    }
 }
