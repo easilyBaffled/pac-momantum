@@ -12,7 +12,7 @@ You can try the game out [here](https://4005qrw1o9.codesandbox.io/)
 
 <h1 align="center">
 	<br>
-	<img width="360" src="https://uploads.codesandbox.io/uploads/user/d9629477-fb79-47a2-aaf1-7a691f473c65/1h1n-pac1.gif">
+	<img width="360" src="https://uploads.codesandbox.io/uploads/user/d9629477-fb79-47a2-aaf1-7a691f473c65/8Xgv-pac1.gif">
 	<br>
 </h1>
 
