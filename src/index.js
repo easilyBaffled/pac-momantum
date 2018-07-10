@@ -31,15 +31,11 @@ const applyVelocity = vector => target =>
         console.ident(Vector.add(vector, target.velocity))
     );
 
-const applyForceAtTarget = vector => (
-    target,
-    clamp = { x: Infinity, y: Infinity }
-) => {
-    const clampedVector = {
-        x: Math.abs(target.velocity.x) < clamp.x ? vector.x : 0,
-        y: Math.abs(target.velocity.y) < clamp.y ? vector.y : 0
-    };
-    Body.applyForce(target, target.position, clampedVector);
+const applyForceAtTarget = vector => target => {
+    console.log(target.torque);
+    Body.applyForce(target, target.position, vector);
+    target.torque = 0;
+    console.log(target.torque);
 };
 
 const isCollisionWith = self => handlersDict => event => {
@@ -162,7 +158,7 @@ var ball = Bodies.circle(
     world.unit * 2,
     {
         friction: 0.05,
-        frictionAir: 0.09,
+        frictionAir: 0.05,
         frictionStatic: 0.05,
         restitution: 0.9,
         label: 'ball',
@@ -205,38 +201,44 @@ const makePellet = (x, y) => {
     return pellet;
 };
 
-var ghost = Bodies.circle(
-    world.centerX,
-    world.centerY + 100,
-    world.unit * 2,
-    {
-        friction: 0.05,
-        frictionStatic: 0.7,
-        restitution: 0.9,
-        label: 'ghost',
-        density: world.unit,
-        render: {
-            fillStyle: colors.red
-        }
-    },
-    20
-);
+const Ghost = (x, y) => {
+    const ghost = Bodies.circle(
+        x,
+        y,
+        world.unit * 2,
+        {
+            friction: 0.05,
+            frictionAir: 0.03,
+            frictionStatic: 0,
+            restitution: 0.5,
+            label: 'ghost',
+            density: world.unit,
+            render: {
+                fillStyle: colors.red
+            }
+        },
+        20
+    );
 
-ghost.collisionHandler = isCollisionWith(ghost)({
-    wall() {
-        console.log(Vector.magnitude(this.velocity));
-        if (Vector.magnitude(this.velocity) > 3) {
-            Composite.remove(engine.world, this);
+    ghost.collisionHandler = isCollisionWith(ghost)({
+        wall() {
+            console.log(Vector.magnitude(this.velocity));
+            if (Vector.magnitude(this.velocity) > 3) {
+                Composite.remove(engine.world, this);
+            }
         }
-    }
-});
+    });
+
+    return ghost;
+};
 
 World.add(engine.world, [
     makePellet(world.centerX, world.centerY + 20),
     makePellet(world.centerX, world.centerY + 40),
     makePellet(world.centerX, world.centerY + 60),
     makePellet(world.centerX, world.centerY + 80),
-    ghost,
+    Ghost(world.centerX, world.centerY + 100),
+    Ghost(world.centerX, world.centerY + 140),
     topWall,
     leftWall,
     rightWall,
@@ -272,7 +274,7 @@ document.addEventListener('keyup', ({ key }) => {
         applyForceAtTarget(unitVectors.zero)
     );
     console.log(ball.velocity, world.unit);
-    getDirForce[key](ball, { x: 4, y: 4 });
+    getDirForce[key](ball);
 });
 
 Events.on(engine, 'collisionStart', event =>
