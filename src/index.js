@@ -31,8 +31,16 @@ const applyVelocity = vector => target =>
         console.ident(Vector.add(vector, target.velocity))
     );
 
-const applyForceAtTarget = vector => target =>
-    Body.applyForce(target, target.position, vector);
+const applyForceAtTarget = vector => (
+    target,
+    clamp = { x: Infinity, y: Infinity }
+) => {
+    const clampedVector = {
+        x: Math.abs(target.velocity.x) < clamp.x ? vector.x : 0,
+        y: Math.abs(target.velocity.y) < clamp.y ? vector.y : 0
+    };
+    Body.applyForce(target, target.position, clampedVector);
+};
 
 const isCollisionWith = self => handlersDict => event => {
     const { bodyA, bodyB } = event.pairs.find(
@@ -154,7 +162,8 @@ var ball = Bodies.circle(
     world.unit * 2,
     {
         friction: 0.05,
-        frictionStatic: 0.7,
+        frictionAir: 0.09,
+        frictionStatic: 0.05,
         restitution: 0.9,
         label: 'ball',
         density: world.unit,
@@ -262,8 +271,8 @@ document.addEventListener('keyup', ({ key }) => {
         },
         applyForceAtTarget(unitVectors.zero)
     );
-    console.log(ball.velocity);
-    getDirForce[key](ball);
+    console.log(ball.velocity, world.unit);
+    getDirForce[key](ball, { x: 4, y: 4 });
 });
 
 Events.on(engine, 'collisionStart', event =>
