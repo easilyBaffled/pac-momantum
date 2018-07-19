@@ -16,7 +16,9 @@ import { colors, lighter, darker } from './colors';
  ***********/
 console.clear();
 console.ident = val => (console.log(val), val);
-
+console.con = val => condition => {
+    if (condition(val)) console.log(val);
+};
 const withDefault = (obj, defaultFunc) =>
     new Proxy(obj, {
         get: (target, name) =>
@@ -26,16 +28,12 @@ const withDefault = (obj, defaultFunc) =>
 const setVelocity = vector => target => Body.setVelocity(target, vector);
 
 const applyVelocity = vector => target =>
-    Body.setVelocity(
-        target,
-        console.ident(Vector.add(vector, target.velocity))
-    );
+    Body.setVelocity(target, Vector.add(vector, target.velocity));
 
 const applyForceAtTarget = vector => target => {
-    console.log(target.torque);
     Body.applyForce(target, target.position, vector);
     target.torque = 0;
-    console.log(target.torque);
+    console.log(target.speed);
 };
 
 const isCollisionWith = self => handlersDict => event => {
@@ -97,7 +95,7 @@ const Wall = (x, y, width, height, options = {}) => {
     return wall;
 };
 
-const world = createWorld(400, 400);
+const world = createWorld(800, 400);
 
 const unitVectors = {
     up: Vector.create(0, -1 / world.unit),
@@ -125,18 +123,18 @@ var topWall = Wall(
     world.centerX,
     world.top,
     world.width + world.unit,
-    world.unit * 4
+    world.unit
 );
 var leftWall = Wall(
     world.left,
     world.centerY,
-    world.unit * 4,
+    world.unit,
     world.height + world.unit
 );
 var rightWall = Wall(
     world.right,
     world.centerY,
-    world.unit * 4,
+    world.unit,
     world.height + world.unit
 );
 
@@ -144,7 +142,7 @@ var bottomWall = Wall(
     world.centerX,
     world.bottom,
     world.width + world.unit,
-    world.unit * 4
+    world.unit
 );
 
 /****************
@@ -155,7 +153,7 @@ var bottomWall = Wall(
 var ball = Bodies.circle(
     world.centerX,
     world.centerY,
-    world.unit * 2,
+    world.unit * 1.5,
     {
         friction: 0.05,
         frictionAir: 0.05,
@@ -180,7 +178,7 @@ const makePellet = (x, y) => {
     const pellet = Bodies.circle(
         x,
         y,
-        world.unit,
+        world.unit * 0.75,
         {
             render: {
                 fillStyle: lighter(colors.yellow, 10)
@@ -222,7 +220,6 @@ const Ghost = (x, y) => {
 
     ghost.collisionHandler = isCollisionWith(ghost)({
         wall() {
-            console.log(Vector.magnitude(this.velocity));
             if (Vector.magnitude(this.velocity) > 3) {
                 Composite.remove(engine.world, this);
             }
@@ -249,33 +246,56 @@ World.add(engine.world, [
 Engine.run(engine);
 Render.run(render);
 
-document.addEventListener('keyup', ({ key }) => {
-    const magnitudeMult = 1.5;
-
-    const getDirForce = withDefault(
-        {
-            ArrowUp: applyForceAtTarget({
-                x: 0,
-                y: -world.unit * magnitudeMult
-            }),
-            ArrowDown: applyForceAtTarget({
-                x: 0,
-                y: world.unit * magnitudeMult
-            }),
-            ArrowLeft: applyForceAtTarget({
-                x: -world.unit * magnitudeMult,
-                y: 0
-            }),
-            ArrowRight: applyForceAtTarget({
-                x: world.unit * magnitudeMult,
-                y: 0
-            })
-        },
-        applyForceAtTarget(unitVectors.zero)
-    );
-    console.log(ball.velocity, world.unit);
-    getDirForce[key](ball);
+const keys = {};
+document.body.addEventListener('keydown', ({ key }) => {
+    keys[key] = true;
 });
+document.body.addEventListener('keyup', ({ key }) => {
+    keys[key] = false;
+});
+
+const magnitudeMult = 1;
+
+const controlForces = withDefault(
+    {
+        ArrowUp: {
+            x: 0,
+            y: -world.unit * magnitudeMult
+        },
+        ArrowDown: {
+            x: 0,
+            y: world.unit * magnitudeMult
+        },
+        ArrowLeft: {
+            x: -world.unit * magnitudeMult,
+            y: 0
+        },
+        ArrowRight: {
+            x: world.unit * magnitudeMult,
+            y: 0
+        }
+    },
+    () => unitVectors.zero
+);
+
+const handleKeyInputs = () => {
+    const vector = ['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'].reduce(
+        (vector, key) =>
+            keys[key] ? Vector.add(vector, controlForces[key]) : vector,
+        unitVectors.zero
+    );
+  
+    Vector.magnitude(vector) > 0 && applyForceAtTarget(vector)(ball);
+    const { x, y } = ball.velocity;
+
+    const clampedVelocty = {
+        x: Math.abs(x) > 6 ? Math.sign(x) * 6 : x,
+        y: Math.abs(y) > 6 ? Math.sign(y) * 6 : y
+    };
+    Body.setVelocity(ball, clampedVelocty);
+};
+
+Events.on(engine, 'beforeTick', handleKeyInputs);
 
 Events.on(engine, 'collisionStart', event =>
     event.pairs.forEach(({ bodyA, bodyB }) => {
