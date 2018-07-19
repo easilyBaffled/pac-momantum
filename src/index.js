@@ -156,8 +156,8 @@ var ball = Bodies.circle(
     world.unit * 1.5,
     {
         friction: 0.05,
-        frictionAir: 0.2,
-        frictionStatic: 10,
+        frictionAir: 0.05,
+        frictionStatic: 0.05,
         restitution: 0.9,
         label: 'ball',
         density: world.unit,
@@ -203,9 +203,9 @@ const Ghost = (x, y) => {
     const ghost = Bodies.circle(
         x,
         y,
-        world.unit,
+        world.unit * 2,
         {
-            friction: 0.1,
+            friction: 0.05,
             frictionAir: 0.03,
             frictionStatic: 0,
             restitution: 0.5,
@@ -215,7 +215,7 @@ const Ghost = (x, y) => {
                 fillStyle: colors.red
             }
         },
-        1
+        20
     );
 
     ghost.collisionHandler = isCollisionWith(ghost)({
@@ -284,7 +284,7 @@ const handleKeyInputs = () => {
             keys[key] ? Vector.add(vector, controlForces[key]) : vector,
         unitVectors.zero
     );
-
+  
     Vector.magnitude(vector) > 0 && applyForceAtTarget(vector)(ball);
     const { x, y } = ball.velocity;
 
