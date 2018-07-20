@@ -8,9 +8,9 @@ import {
     Vector,
     Events
 } from 'matter-js';
-import $ from 'jquery';
 import { clone } from 'lodash';
 import { colors, lighter, darker } from './colors';
+import { updateChartData } from './chart';
 /**********
     Util
  ***********/
@@ -33,7 +33,6 @@ const applyVelocity = vector => target =>
 const applyForceAtTarget = vector => target => {
     Body.applyForce(target, target.position, vector);
     target.torque = 0;
-    console.log(target.speed);
 };
 
 const isCollisionWith = self => handlersDict => event => {
@@ -284,7 +283,7 @@ const handleKeyInputs = () => {
             keys[key] ? Vector.add(vector, controlForces[key]) : vector,
         unitVectors.zero
     );
-  
+
     Vector.magnitude(vector) > 0 && applyForceAtTarget(vector)(ball);
     const { x, y } = ball.velocity;
 
@@ -296,6 +295,30 @@ const handleKeyInputs = () => {
 };
 
 Events.on(engine, 'beforeTick', handleKeyInputs);
+
+let measurements = [];
+Events.on(engine, 'beforeTick', () => {
+    if (ball.speed < 0.2 && measurements.length > 0) {
+        console.log(ball.speed);
+        console.log('dump');
+        updateChartData(console.ident(measurementsToCharData(measurements)));
+        measurements = [];
+    }
+    if (ball.speed > 0.2)
+        measurements.push({ speed: ball.speed, ball, time: Date.now() });
+});
+
+function measurementsToCharData(measurements) {
+    // console.log(measurements);
+    return measurements.reduce(
+        (acc, { speed, time }, i, arr) =>
+            acc.concat({
+                speed,
+                time: i > 0 ? Math.abs(arr[i - 1].time - time) : 0
+            }),
+        []
+    );
+}
 
 Events.on(engine, 'collisionStart', event =>
     event.pairs.forEach(({ bodyA, bodyB }) => {

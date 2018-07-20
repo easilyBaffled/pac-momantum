@@ -13,3 +13,8 @@
 .orange {
     background: #db851c;
 }
+
+#chartdiv {
+    width: 100%;
+    height: 200px;
+}
