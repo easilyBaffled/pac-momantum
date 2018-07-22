@@ -8,151 +8,30 @@ import {
     Vector,
     Events
 } from 'matter-js';
-import { clone } from 'lodash';
 import { colors, lighter, darker } from './colors';
 import { updateChartData } from './chart';
-/**********
-    Util
- ***********/
-console.clear();
-console.ident = val => (console.log(val), val);
-console.con = val => condition => {
-    if (condition(val)) console.log(val);
-};
-const withDefault = (obj, defaultFunc) =>
-    new Proxy(obj, {
-        get: (target, name) =>
-            Reflect.get(target, name) || defaultFunc(name, target)
-    });
-
-const setVelocity = vector => target => Body.setVelocity(target, vector);
-
-const applyVelocity = vector => target =>
-    Body.setVelocity(target, Vector.add(vector, target.velocity));
-
-const applyForceAtTarget = vector => target => {
-    Body.applyForce(target, target.position, vector);
-    target.torque = 0;
-};
-
-const isCollisionWith = self => handlersDict => event => {
-    const { bodyA, bodyB } = event.pairs.find(
-        ({ bodyA, bodyB }) =>
-            bodyA.label === self.label || bodyB.label === self.label
-    );
-    const target = bodyA === self ? bodyB : bodyA;
-    handlersDict[target.label] &&
-        handlersDict[target.label].bind(self)(target, event);
-};
+import GameWorld from './gameWorld';
+import {
+    isCollisionWith,
+    setVelocity,
+    withDefault,
+    applyForceAtTarget
+} from './util';
 
 /************
     Set Up
- *************/
-const createWorld = (width, height) => ({
-    width,
-    height,
-    top: 0,
-    bottom: height,
-    left: 0,
-    right: width,
-    centerX: width / 2,
-    centerY: height / 2,
-    unit: width / 100
-});
-
-const vectors = {
-    up: Vector.create(0, -1),
-    down: Vector.create(0, 1),
-    left: Vector.create(-1, 0),
-    right: Vector.create(1, 0),
-    zero: Vector.create(0, 0)
-};
-
-const Wall = (x, y, width, height, options = {}) => {
-    const wall = Bodies.rectangle(
-        x,
-        y,
-        width,
-        height,
-        Object.assign(options, {
-            isStatic: true,
-            label: 'wall',
-            render: { fillStyle: colors.blue }
-        })
-    );
-
-    wall.collisionHandler = isCollisionWith(wall)({
-        ghost() {
-            const originalRender = clone(this.render);
-            this.render.fillStyle = lighter(colors.blue, 50);
-            this.render.lineWidth = 3;
-            this.render.strokeStyle = '#fff';
-            setTimeout(() => (this.render = originalRender), 200);
-        }
-    });
-
-    return wall;
-};
-
-const world = createWorld(800, 400);
-
-const unitVectors = {
-    up: Vector.create(0, -1 / world.unit),
-    down: Vector.create(0, 1 / world.unit),
-    left: Vector.create(-1 / world.unit, 0),
-    right: Vector.create(1 / world.unit, 0),
-    zero: Vector.create(0, 0)
-};
-
-const engine = Engine.create();
-engine.enableSleeping = true;
-engine.world.gravity = vectors.zero;
-const render = Render.create({
-    element: document.body,
-    engine,
-    options: {
-        width: world.width,
-        height: world.height,
-        wireframes: false,
-        showAngleIndicator: true
-    }
-});
-
-var topWall = Wall(
-    world.centerX,
-    world.top,
-    world.width + world.unit,
-    world.unit
-);
-var leftWall = Wall(
-    world.left,
-    world.centerY,
-    world.unit,
-    world.height + world.unit
-);
-var rightWall = Wall(
-    world.right,
-    world.centerY,
-    world.unit,
-    world.height + world.unit
-);
-
-var bottomWall = Wall(
-    world.centerX,
-    world.bottom,
-    world.width + world.unit,
-    world.unit
-);
-
+ ************/
+const world = new GameWorld(400, 400);
+// const acceleration = ;
+// const maxSpeed = ;
 /****************
     Play Space
- *****************/
+ ****************/
 
-// bottomWall.restitution = 2;
 var ball = Bodies.circle(
     world.centerX,
     world.centerY,
-    world.unit * 1.5,
+    world.unit * 1.5, // radius
     {
         friction: 0.05,
         frictionAir: 0.05,
@@ -164,7 +43,7 @@ var ball = Bodies.circle(
             fillStyle: darker(colors.yellow, 10)
         }
     },
-    20
+    20 // maxSides
 );
 
 ball.collisionHandler = isCollisionWith(ball)({
@@ -191,7 +70,7 @@ const makePellet = (x, y) => {
 
     pellet.collisionHandler = isCollisionWith(pellet)({
         ball() {
-            Composite.remove(engine.world, this);
+            Composite.remove(world.engine.world, this);
         }
     });
 
@@ -220,7 +99,7 @@ const Ghost = (x, y) => {
     ghost.collisionHandler = isCollisionWith(ghost)({
         wall() {
             if (Vector.magnitude(this.velocity) > 3) {
-                Composite.remove(engine.world, this);
+                Composite.remove(world.engine.world, this);
             }
         }
     });
@@ -228,22 +107,18 @@ const Ghost = (x, y) => {
     return ghost;
 };
 
-World.add(engine.world, [
+World.add(world.engine.world, [
     makePellet(world.centerX, world.centerY + 20),
     makePellet(world.centerX, world.centerY + 40),
     makePellet(world.centerX, world.centerY + 60),
     makePellet(world.centerX, world.centerY + 80),
     Ghost(world.centerX, world.centerY + 100),
     Ghost(world.centerX, world.centerY + 140),
-    topWall,
-    leftWall,
-    rightWall,
-    ball,
-    bottomWall
+    ball
 ]);
 
-Engine.run(engine);
-Render.run(render);
+Engine.run(world.engine);
+Render.run(world.render);
 
 const keys = {};
 document.body.addEventListener('keydown', ({ key }) => {
@@ -274,30 +149,40 @@ const controlForces = withDefault(
             y: 0
         }
     },
-    () => unitVectors.zero
+    () => world.unitVectors.zero
 );
 
 const handleKeyInputs = () => {
     const vector = ['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'].reduce(
         (vector, key) =>
             keys[key] ? Vector.add(vector, controlForces[key]) : vector,
-        unitVectors.zero
+        world.unitVectors.zero
     );
 
     Vector.magnitude(vector) > 0 && applyForceAtTarget(vector)(ball);
     const { x, y } = ball.velocity;
 
     const clampedVelocty = {
-        x: Math.abs(x) > 6 ? Math.sign(x) * 6 : x,
-        y: Math.abs(y) > 6 ? Math.sign(y) * 6 : y
+        x: Math.abs(x) > 7 ? Math.sign(x) * 7 : x,
+        y: Math.abs(y) > 7 ? Math.sign(y) * 7 : y
     };
     Body.setVelocity(ball, clampedVelocty);
 };
 
-Events.on(engine, 'beforeTick', handleKeyInputs);
+Events.on(world.engine, 'beforeTick', handleKeyInputs);
 
+Events.on(world.engine, 'collisionStart', event =>
+    event.pairs.forEach(({ bodyA, bodyB }) => {
+        bodyA.collisionHandler && bodyA.collisionHandler(event);
+        bodyB.collisionHandler && bodyB.collisionHandler(event);
+    })
+);
+
+/***************
+    Game Meta
+ ***************/
 let measurements = [];
-Events.on(engine, 'beforeTick', () => {
+Events.on(world.engine, 'beforeTick', () => {
     if (ball.speed < 0.2 && measurements.length > 0) {
         console.log(ball.speed);
         console.log('dump');
@@ -319,10 +204,3 @@ function measurementsToCharData(measurements) {
         []
     );
 }
-
-Events.on(engine, 'collisionStart', event =>
-    event.pairs.forEach(({ bodyA, bodyB }) => {
-        bodyA.collisionHandler && bodyA.collisionHandler(event);
-        bodyB.collisionHandler && bodyB.collisionHandler(event);
-    })
-);
