@@ -8,22 +8,28 @@ import {
     Vector,
     Events
 } from 'matter-js';
+import { some } from 'lodash/fp';
 import { colors, lighter, darker } from './colors';
 import { updateChartData } from './chart';
 import GameWorld from './gameWorld';
 import {
+    vectors,
     isCollisionWith,
     setVelocity,
     withDefault,
     applyForceAtTarget
 } from './util';
 
+// Docs http://brm.io/matter-js/docs/
+
 /************
     Set Up
  ************/
 const world = new GameWorld(400, 400);
-// const acceleration = ;
-// const maxSpeed = ;
+console.log(world.unit);
+const acceleration = world.unit * 0.15;
+const maxSpeed = world.unit;
+const friction = acceleration * 0.15;
 /****************
     Play Space
  ****************/
@@ -33,9 +39,7 @@ var ball = Bodies.circle(
     world.centerY,
     world.unit * 1.5, // radius
     {
-        friction: 0.05,
-        frictionAir: 0.05,
-        frictionStatic: 0.05,
+        frictionAir: friction,
         restitution: 0.9,
         label: 'ball',
         density: world.unit,
@@ -128,34 +132,18 @@ document.body.addEventListener('keyup', ({ key }) => {
     keys[key] = false;
 });
 
-const magnitudeMult = 1;
-
-const controlForces = withDefault(
-    {
-        ArrowUp: {
-            x: 0,
-            y: -world.unit * magnitudeMult
-        },
-        ArrowDown: {
-            x: 0,
-            y: world.unit * magnitudeMult
-        },
-        ArrowLeft: {
-            x: -world.unit * magnitudeMult,
-            y: 0
-        },
-        ArrowRight: {
-            x: world.unit * magnitudeMult,
-            y: 0
-        }
+const keyForceMapping = {
+        ArrowUp: Vector.mult(vectors.up, acceleration),
+        ArrowDown: Vector.mult(vectors.down, acceleration),
+        ArrowLeft: Vector.mult(vectors.left, acceleration),
+        ArrowRight: Vector.mult(vectors.right, acceleration)
     },
-    () => world.unitVectors.zero
-);
+    controlForcesMapper = key => keyForceMapping[key] || vectors.zero;
 
 const handleKeyInputs = () => {
     const vector = ['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'].reduce(
         (vector, key) =>
-            keys[key] ? Vector.add(vector, controlForces[key]) : vector,
+            keys[key] ? Vector.add(vector, controlForcesMapper(key)) : vector,
         world.unitVectors.zero
     );
 
@@ -163,8 +151,8 @@ const handleKeyInputs = () => {
     const { x, y } = ball.velocity;
 
     const clampedVelocty = {
-        x: Math.abs(x) > 7 ? Math.sign(x) * 7 : x,
-        y: Math.abs(y) > 7 ? Math.sign(y) * 7 : y
+        x: Math.abs(x) > maxSpeed ? Math.sign(x) * maxSpeed : x,
+        y: Math.abs(y) > maxSpeed ? Math.sign(y) * maxSpeed : y
     };
     Body.setVelocity(ball, clampedVelocty);
 };
@@ -184,23 +172,30 @@ Events.on(world.engine, 'collisionStart', event =>
 let measurements = [];
 Events.on(world.engine, 'beforeTick', () => {
     if (ball.speed < 0.2 && measurements.length > 0) {
-        console.log(ball.speed);
-        console.log('dump');
         updateChartData(console.ident(measurementsToCharData(measurements)));
         measurements = [];
     }
     if (ball.speed > 0.2)
-        measurements.push({ speed: ball.speed, ball, time: Date.now() });
+        measurements.push({
+            speed: ball.speed,
+            ball,
+            time: Date.now(),
+            keys
+        });
 });
 
 function measurementsToCharData(measurements) {
-    // console.log(measurements);
     return measurements.reduce(
-        (acc, { speed, time }, i, arr) =>
-            acc.concat({
-                speed,
-                time: i > 0 ? Math.abs(arr[i - 1].time - time) : 0
-            }),
+        (acc, { speed, time, keys }, i, arr) =>
+            acc.concat(
+                Object.assign(
+                    {
+                        speed,
+                        time: i > 0 ? Math.abs(arr[0].time - time) : 0
+                    },
+                    keys
+                )
+            ),
         []
     );
 }

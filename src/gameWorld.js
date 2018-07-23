@@ -1,6 +1,6 @@
 import { Engine, Render, World, Bodies, Vector } from 'matter-js';
 import { clone } from 'lodash';
-import { colors } from './colors';
+import { colors, lighter } from './colors';
 
 import { vectors, isCollisionWith } from './util';
 

@@ -1,12 +1,13 @@
 import { Vector, Body } from 'matter-js';
+import { curry } from 'lodash';
 /************
     Set Up
  *************/
 console.clear();
 console.ident = val => (console.log(val), val);
-console.con = val => condition => {
+console.con = curry((val, condition) => {
     if (condition(val)) console.log(val);
-};
+});
 
 export const withDefault = (obj, defaultFunc) =>
     new Proxy(obj, {
