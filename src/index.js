@@ -10,7 +10,7 @@ import {
 } from 'matter-js';
 import { some } from 'lodash/fp';
 import { colors, lighter, darker } from './colors';
-import { updateChartData } from './chart';
+import Chart from './chart';
 import GameWorld from './gameWorld';
 import {
     vectors,
@@ -25,11 +25,27 @@ import {
 /************
     Set Up
  ************/
+const chart = new Chart();
 const world = new GameWorld(400, 400);
 console.log(world.unit);
-const acceleration = world.unit * 0.15;
+const acceleration = world.unit * 0.2;
 const maxSpeed = world.unit;
 const friction = acceleration * 0.15;
+document.getElementById('chartdiv').insertAdjacentHTML(
+    'beforebegin',
+    `<code id="data">
+                ${JSON.stringify(
+                    {
+                        acceleration,
+                        maxSpeed,
+                        friction
+                    },
+                    null,
+                    4
+                )}
+        </code>`
+);
+
 /****************
     Play Space
  ****************/
@@ -172,7 +188,9 @@ Events.on(world.engine, 'collisionStart', event =>
 let measurements = [];
 Events.on(world.engine, 'beforeTick', () => {
     if (ball.speed < 0.2 && measurements.length > 0) {
-        updateChartData(console.ident(measurementsToCharData(measurements)));
+        chart.updateChartData(
+            console.ident(measurementsToCharData(measurements))
+        );
         measurements = [];
     }
     if (ball.speed > 0.2)
