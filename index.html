@@ -4,12 +4,17 @@
 		<meta charset="UTF-8" />
 		<link rel="stylesheet" href="index.css" type="text/css" media="all" />
 		<link rel="stylesheet" href="https://www.amcharts.com/lib/3/plugins/export/export.css" type="text/css" media="all" />
+		<script src="pathseg.js"></script>
 	</head>
 
 	<body>
 		<div/>
-		<div id="chartdiv" />
-		<div id="app" />
+		<div id="chartdiv" ></div>
+		<div id="app" ></div>
+		<div></div>		
+		<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="50vw" height="50vw">
+			<path id="curved-path" d="M 400 300 Q 550 100 700 300 L 650 300 Q 550 100 450 300 z" fill="none" stroke="#000" stroke-width="10px" />
+		</svg>
 		<script src="https://www.amcharts.com/lib/3/amcharts.js"></script>
 		<script src="https://www.amcharts.com/lib/3/serial.js"></script>
 		<script src="https://www.amcharts.com/lib/3/plugins/export/export.min.js"></script>	

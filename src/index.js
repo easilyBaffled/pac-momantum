@@ -6,7 +6,8 @@ import {
     Bodies,
     Body,
     Vector,
-    Events
+    Events,
+    Svg
 } from 'matter-js';
 import { some } from 'lodash/fp';
 import { colors, lighter, darker } from './colors';
@@ -127,6 +128,27 @@ const Ghost = (x, y) => {
     return ghost;
 };
 
+/*********************************
+    Attempting to add SVG curve
+ *********************************/
+// const path = document.getElementById('curved-path');
+
+// console.log(path);
+// const vertexSets = [Svg.pathToVertices(path, 60)];
+// console.log(vertexSets);
+// const terrain = Bodies.fromVertices(
+//     100,
+//     100,
+//     vertexSets,
+//     {
+//         isStatic: true,
+//         render: {
+//             strokeStyle: '#fff',
+//             lineWidth: 1
+//         }
+//     },
+//     true
+// );
 World.add(world.engine.world, [
     makePellet(world.centerX, world.centerY + 20),
     makePellet(world.centerX, world.centerY + 40),
@@ -134,7 +156,8 @@ World.add(world.engine.world, [
     makePellet(world.centerX, world.centerY + 80),
     Ghost(world.centerX, world.centerY + 100),
     Ghost(world.centerX, world.centerY + 140),
-    ball
+    ball,
+    terrain
 ]);
 
 Engine.run(world.engine);
