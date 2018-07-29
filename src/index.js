@@ -131,24 +131,24 @@ const Ghost = (x, y) => {
 /*********************************
     Attempting to add SVG curve
  *********************************/
-// const path = document.getElementById('curved-path');
+const path = document.getElementById('curved-path');
 
-// console.log(path);
-// const vertexSets = [Svg.pathToVertices(path, 60)];
-// console.log(vertexSets);
-// const terrain = Bodies.fromVertices(
-//     100,
-//     100,
-//     vertexSets,
-//     {
-//         isStatic: true,
-//         render: {
-//             strokeStyle: '#fff',
-//             lineWidth: 1
-//         }
-//     },
-//     true
-// );
+console.log('path', path);
+const vertexSets = [Svg.pathToVertices(path, 30)];
+console.log(vertexSets);
+const terrain = Bodies.fromVertices(
+    100,
+    100,
+    vertexSets,
+    {
+        isStatic: true,
+        render: {
+            strokeStyle: '#fff',
+            lineWidth: 1
+        }
+    },
+    true
+);
 World.add(world.engine.world, [
     makePellet(world.centerX, world.centerY + 20),
     makePellet(world.centerX, world.centerY + 40),
