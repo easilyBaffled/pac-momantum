@@ -28,10 +28,10 @@ import {
  ************/
 const chart = new Chart();
 const world = new GameWorld(400, 400);
-console.log(world.unit);
+
 const acceleration = world.unit * 0.2;
 const maxSpeed = world.unit;
-const friction = acceleration * 0.15;
+const friction = acceleration * 0.2;
 document.getElementById('chartdiv').insertAdjacentHTML(
     'beforebegin',
     `<code id="data">
@@ -99,23 +99,18 @@ const makePellet = (x, y) => {
 };
 
 const Ghost = (x, y) => {
-    const ghost = Bodies.circle(
-        x,
-        y,
-        world.unit * 2,
-        {
-            friction: 0.05,
-            frictionAir: 0.03,
-            frictionStatic: 0,
-            restitution: 0.5,
-            label: 'ghost',
-            density: world.unit,
-            render: {
-                fillStyle: colors.red
-            }
-        },
-        20
-    );
+    const ghost = Bodies.circle(x, y, world.unit * 2, {
+        friction: 0.05,
+        frictionAir: 0.03,
+        frictionStatic: 0,
+        restitution: 0.5,
+        label: 'ghost',
+        sleepThreshold: 3000,
+        density: world.unit,
+        render: {
+            fillStyle: colors.red
+        }
+    });
 
     ghost.collisionHandler = isCollisionWith(ghost)({
         wall() {
@@ -133,9 +128,8 @@ const Ghost = (x, y) => {
  *********************************/
 const path = document.getElementById('curved-path');
 
-console.log('path', path);
-const vertexSets = [Svg.pathToVertices(path, 30)];
-console.log(vertexSets);
+const vertexSets = [Svg.pathToVertices(path, 10)];
+
 const terrain = Bodies.fromVertices(
     100,
     100,
@@ -143,8 +137,7 @@ const terrain = Bodies.fromVertices(
     {
         isStatic: true,
         render: {
-            strokeStyle: '#fff',
-            lineWidth: 1
+            fillStyle: colors.blue
         }
     },
     true
@@ -179,21 +172,57 @@ const keyForceMapping = {
     },
     controlForcesMapper = key => keyForceMapping[key] || vectors.zero;
 
-const handleKeyInputs = () => {
-    const vector = ['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'].reduce(
+const applyImpulseSpeed = (impulse, velocity, clamp) => {
+    if (impulse === 0) return velocity;
+
+    const { x, y } = Vector.mult(velocity, impulse);
+
+    return {
+        x: Math.abs(x) > clamp ? Math.sign(x) * clamp : x,
+        y: Math.abs(y) > clamp ? Math.sign(y) * clamp : y
+    };
+};
+
+const handleImpulseKeyInput = () => {
+    return [1, 2, 3, 4, 5, 6, 7, 8, 9].reduce((impulse, key) => {
+        if (keys[key]) {
+            keys[key] = false;
+            return impulse + key;
+        }
+        return impulse;
+    }, 0);
+};
+
+const handleDirectionKeyInput = () => {
+    return ['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'].reduce(
         (vector, key) =>
             keys[key] ? Vector.add(vector, controlForcesMapper(key)) : vector,
         world.unitVectors.zero
     );
+};
 
+const handleKeyInputs = () => {
+    const { velocity: initVelocity } = ball;
+
+    const vector = handleDirectionKeyInput();
+    // Speculative apply new force
     Vector.magnitude(vector) > 0 && applyForceAtTarget(vector)(ball);
+
     const { x, y } = ball.velocity;
 
-    const clampedVelocty = {
-        x: Math.abs(x) > maxSpeed ? Math.sign(x) * maxSpeed : x,
-        y: Math.abs(y) > maxSpeed ? Math.sign(y) * maxSpeed : y
+    const clampedVelocity = {
+        x: Math.abs(x) > maxSpeed ? initVelocity.x : x,
+        y: Math.abs(y) > maxSpeed ? initVelocity.y : y
     };
-    Body.setVelocity(ball, clampedVelocty);
+
+    const impulseSpeed = handleImpulseKeyInput();
+    const finalVelocity = applyImpulseSpeed(
+        impulseSpeed * impulseSpeed,
+        clampedVelocity,
+        maxSpeed * 2.5
+    );
+
+    Body.setVelocity(ball, finalVelocity);
 };
 
 Events.on(world.engine, 'beforeTick', handleKeyInputs);
@@ -211,9 +240,7 @@ Events.on(world.engine, 'collisionStart', event =>
 let measurements = [];
 Events.on(world.engine, 'beforeTick', () => {
     if (ball.speed < 0.2 && measurements.length > 0) {
-        chart.updateChartData(
-            console.ident(measurementsToCharData(measurements))
-        );
+        chart.updateChartData(measurementsToCharData(measurements));
         measurements = [];
     }
     if (ball.speed > 0.2)
