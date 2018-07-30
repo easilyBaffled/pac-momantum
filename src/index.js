@@ -156,14 +156,6 @@ World.add(world.engine.world, [
 Engine.run(world.engine);
 Render.run(world.render);
 
-const keys = {};
-document.body.addEventListener('keydown', ({ key }) => {
-    keys[key] = true;
-});
-document.body.addEventListener('keyup', ({ key }) => {
-    keys[key] = false;
-});
-
 const keyForceMapping = {
         ArrowUp: Vector.mult(vectors.up, acceleration),
         ArrowDown: Vector.mult(vectors.down, acceleration),
@@ -172,7 +164,7 @@ const keyForceMapping = {
     },
     controlForcesMapper = key => keyForceMapping[key] || vectors.zero;
 
-const applyImpulseSpeed = (impulse, velocity, clamp) => {
+const applyImpulseSpeed = (impulse, clamp, velocity) => {
     if (impulse === 0) return velocity;
 
     const { x, y } = Vector.mult(velocity, impulse);
@@ -183,49 +175,12 @@ const applyImpulseSpeed = (impulse, velocity, clamp) => {
     };
 };
 
-const handleImpulseKeyInput = () => {
-    return [1, 2, 3, 4, 5, 6, 7, 8, 9].reduce((impulse, key) => {
-        if (keys[key]) {
-            keys[key] = false;
-            return impulse + key;
-        }
-        return impulse;
-    }, 0);
-};
-
-const handleDirectionKeyInput = () => {
-    return ['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'].reduce(
-        (vector, key) =>
-            keys[key] ? Vector.add(vector, controlForcesMapper(key)) : vector,
-        world.unitVectors.zero
-    );
-};
-
-const handleKeyInputs = () => {
-    const { velocity: initVelocity } = ball;
-
-    const vector = handleDirectionKeyInput();
-    // Speculative apply new force
+document.body.addEventListener('keyup', ({ key }) => {
+    const directionVector = controlForcesMapper(key);
+    console.log(directionVector);
+    const vector = applyImpulseSpeed(acceleration, maxSpeed, directionVector);
     Vector.magnitude(vector) > 0 && applyForceAtTarget(vector)(ball);
-
-    const { x, y } = ball.velocity;
-
-    const clampedVelocity = {
-        x: Math.abs(x) > maxSpeed ? initVelocity.x : x,
-        y: Math.abs(y) > maxSpeed ? initVelocity.y : y
-    };
-
-    const impulseSpeed = handleImpulseKeyInput();
-    const finalVelocity = applyImpulseSpeed(
-        impulseSpeed * impulseSpeed,
-        clampedVelocity,
-        maxSpeed * 2.5
-    );
-
-    Body.setVelocity(ball, finalVelocity);
-};
-
-Events.on(world.engine, 'beforeTick', handleKeyInputs);
+});
 
 Events.on(world.engine, 'collisionStart', event =>
     event.pairs.forEach(({ bodyA, bodyB }) => {
@@ -247,8 +202,8 @@ Events.on(world.engine, 'beforeTick', () => {
         measurements.push({
             speed: ball.speed,
             ball,
-            time: Date.now(),
-            keys
+            time: Date.now()
+            // keys
         });
 });
 
