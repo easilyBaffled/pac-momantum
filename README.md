@@ -1,4 +1,7 @@
 # PAC-moMANtum ( better pun to come )
+
+[![Greenkeeper badge](https://badges.greenkeeper.io/easilyBaffled/pac-momantum.svg)](https://greenkeeper.io/)
+
 <h1 align="center">
 	<br>
 	<img src="https://img.dafont.com/preview.php?text=PAC+-+moMANtum&ttf=pacfont0&ext=1&size=50&psize=m&y=57">
