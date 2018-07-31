@@ -7,7 +7,8 @@ import {
     Body,
     Vector,
     Events,
-    Svg
+    Svg,
+    Vertices
 } from 'matter-js';
 import { some } from 'lodash/fp';
 import { colors, lighter, darker } from './colors';
@@ -17,7 +18,6 @@ import {
     vectors,
     isCollisionWith,
     setVelocity,
-    withDefault,
     applyForceAtTarget
 } from './util';
 
@@ -29,9 +29,9 @@ import {
 const chart = new Chart();
 const world = new GameWorld(400, 400);
 
-const acceleration = world.unit * 0.2;
-const maxSpeed = world.unit;
-const friction = acceleration * 0.2;
+const acceleration = world.unit * 0.7;
+const maxSpeed = world.unit * 4;
+const friction = acceleration * 0.01;
 document.getElementById('chartdiv').insertAdjacentHTML(
     'beforebegin',
     `<code id="data">
@@ -51,29 +51,33 @@ document.getElementById('chartdiv').insertAdjacentHTML(
     Play Space
  ****************/
 
-var ball = Bodies.circle(
-    world.centerX,
-    world.centerY,
-    world.unit * 1.5, // radius
-    {
-        frictionAir: friction,
-        restitution: 0.9,
-        label: 'ball',
-        density: world.unit,
-        render: {
-            fillStyle: darker(colors.yellow, 10)
-        }
-    },
-    20 // maxSides
-);
+const Pac = (x, y) => {
+    const pac = Bodies.circle(
+        x,
+        y,
+        world.unit * 1.5, // radius
+        {
+            frictionAir: friction,
+            restitution: 0.5,
+            label: 'pac',
+            density: world.unit,
+            render: {
+                fillStyle: darker(colors.yellow, 10)
+            }
+        },
+        20 // maxSides
+    );
 
-ball.collisionHandler = isCollisionWith(ball)({
-    pellet() {
-        setVelocity(Vector.mult(this.velocity, world.unit / 3))(this);
-    } // best keep the multiplier small, world.unit sends it off screen fast // setVelocity works much better than applyForce, not sure why
-});
+    pac.collisionHandler = isCollisionWith(pac)({
+        pellet() {
+            setVelocity(Vector.mult(this.velocity, world.unit / 3))(this);
+        } // best keep the multiplier small, world.unit sends it off screen fast // setVelocity works much better than applyForce, not sure why
+    });
 
-const makePellet = (x, y) => {
+    return pac;
+};
+
+const Pellet = (x, y) => {
     const pellet = Bodies.circle(
         x,
         y,
@@ -83,14 +87,14 @@ const makePellet = (x, y) => {
                 fillStyle: lighter(colors.yellow, 10)
             },
             label: 'pellet',
-            isSensor: true // prevents ball from bouncing off the pellet
+            isSensor: true // prevents pac from bouncing off the pellet
             // isStatic: true // unclear if this helps in this case
         },
         20
     );
 
     pellet.collisionHandler = isCollisionWith(pellet)({
-        ball() {
+        pac() {
             Composite.remove(world.engine.world, this);
         }
     });
@@ -126,13 +130,15 @@ const Ghost = (x, y) => {
 /*********************************
     Attempting to add SVG curve
  *********************************/
-const path = document.getElementById('curved-path');
+const halfPipe = document.getElementById('curved-path');
+const halfPipeVertices = Svg.pathToVertices(halfPipe, 10);
+const scaledHalfPipe = Vertices.scale(halfPipeVertices, 1.2, 1.4);
 
-const vertexSets = [Svg.pathToVertices(path, 10)];
+const vertexSets = [scaledHalfPipe];
 
 const terrain = Bodies.fromVertices(
-    100,
-    100,
+    136,
+    65,
     vertexSets,
     {
         isStatic: true,
@@ -142,14 +148,19 @@ const terrain = Bodies.fromVertices(
     },
     true
 );
+
+const pac = Pac(world.unit * 1.5, world.height * 0.75);
+
 World.add(world.engine.world, [
-    makePellet(world.centerX, world.centerY + 20),
-    makePellet(world.centerX, world.centerY + 40),
-    makePellet(world.centerX, world.centerY + 60),
-    makePellet(world.centerX, world.centerY + 80),
-    Ghost(world.centerX, world.centerY + 100),
-    Ghost(world.centerX, world.centerY + 140),
-    ball,
+    ...Array.from({ length: 6 }, (_, i) =>
+        Pellet(world.unit * 1.5, world.height * 0.75 - i * 25)
+    ),
+    ...Array.from({ length: 5 }, (_, i) =>
+        Pellet(250 + i * 2.5, world.height * 0.25 + i * 20)
+    ),
+    Ghost(262.5, world.height * 0.5),
+    Ghost(262.5, world.height * 0.5 + 40),
+    pac,
     terrain
 ]);
 
@@ -177,9 +188,10 @@ const applyImpulseSpeed = (impulse, clamp, velocity) => {
 
 document.body.addEventListener('keyup', ({ key }) => {
     const directionVector = controlForcesMapper(key);
-    console.log(directionVector);
     const vector = applyImpulseSpeed(acceleration, maxSpeed, directionVector);
-    Vector.magnitude(vector) > 0 && applyForceAtTarget(vector)(ball);
+    Vector.magnitude(vector) > 0 && applyForceAtTarget(vector)(pac);
+
+    if (key === ' ') setVelocity(vectors.zero)(pac);
 });
 
 Events.on(world.engine, 'collisionStart', event =>
@@ -194,14 +206,14 @@ Events.on(world.engine, 'collisionStart', event =>
  ***************/
 let measurements = [];
 Events.on(world.engine, 'beforeTick', () => {
-    if (ball.speed < 0.2 && measurements.length > 0) {
+    if (pac.speed < 0.2 && measurements.length > 0) {
         chart.updateChartData(measurementsToCharData(measurements));
         measurements = [];
     }
-    if (ball.speed > 0.2)
+    if (pac.speed > 0.2)
         measurements.push({
-            speed: ball.speed,
-            ball,
+            speed: pac.speed,
+            pac,
             time: Date.now()
             // keys
         });
