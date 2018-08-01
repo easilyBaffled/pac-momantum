@@ -4,29 +4,26 @@ import {
     Render,
     World,
     Bodies,
-    Body,
     Vector,
     Events,
     Svg,
     Vertices
 } from 'matter-js';
-import { some } from 'lodash/fp';
 import { colors, lighter, darker } from './colors';
-import Chart from './chart';
 import GameWorld from './gameWorld';
 import {
     vectors,
     isCollisionWith,
     setVelocity,
-    applyForceAtTarget
+    applyForceAtTarget,
+    createElementFromHTML
 } from './util';
-
+import ramp from '../assets/ramp.svg';
 // Docs http://brm.io/matter-js/docs/
 
 /************
     Set Up
  ************/
-const chart = new Chart();
 const world = new GameWorld(400, 400);
 
 const acceleration = world.unit * 0.7;
@@ -130,7 +127,7 @@ const Ghost = (x, y) => {
 /*********************************
     Attempting to add SVG curve
  *********************************/
-const halfPipe = document.getElementById('curved-path');
+const halfPipe = createElementFromHTML(ramp);
 const halfPipeVertices = Svg.pathToVertices(halfPipe, 10);
 const scaledHalfPipe = Vertices.scale(halfPipeVertices, 1.2, 1.4);
 
@@ -200,39 +197,3 @@ Events.on(world.engine, 'collisionStart', event =>
         bodyB.collisionHandler && bodyB.collisionHandler(event);
     })
 );
-
-/***************
-    Game Meta
- ***************/
-let measurements = [];
-Events.on(world.engine, 'beforeTick', () => {
-    if (pac.speed < 0.2 && measurements.length > 0) {
-        chart.updateChartData(measurementsToCharData(measurements));
-        measurements = [];
-    }
-    if (pac.speed > 0.2)
-        measurements.push({
-            speed: pac.speed,
-            velocity: pac.velocity,
-            pac,
-            time: Date.now()
-            // keys
-        });
-});
-
-function measurementsToCharData(measurements) {
-    console.log(measurements);
-    return measurements.reduce(
-        (acc, { speed, time, keys }, i, arr) =>
-            acc.concat(
-                Object.assign(
-                    {
-                        speed,
-                        time: i > 0 ? Math.abs(arr[0].time - time) : 0
-                    },
-                    keys
-                )
-            ),
-        []
-    );
-}

@@ -45,3 +45,11 @@ export const isCollisionWith = self => handlersDict => event => {
     handlersDict[target.label] &&
         handlersDict[target.label].bind(self)(target, event);
 };
+
+export function createElementFromHTML(htmlString) {
+    var div = document.createElement('div');
+    div.innerHTML = htmlString.trim();
+
+    // Change this to div.childNodes to support multiple top-level nodes
+    return div.firstChild;
+}
