@@ -33,7 +33,7 @@ export const applyVelocity = vector => target =>
 
 export const applyForceAtTarget = vector => target => {
     Body.applyForce(target, target.position, vector);
-    target.torque = 0;
+    // Body.setAngularVelocity(target, 0);
 };
 
 export const isCollisionWith = self => handlersDict => event => {

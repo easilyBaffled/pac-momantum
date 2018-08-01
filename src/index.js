@@ -137,7 +137,7 @@ const scaledHalfPipe = Vertices.scale(halfPipeVertices, 1.2, 1.4);
 const vertexSets = [scaledHalfPipe];
 
 const terrain = Bodies.fromVertices(
-    136,
+    134,
     65,
     vertexSets,
     {
@@ -152,11 +152,11 @@ const terrain = Bodies.fromVertices(
 const pac = Pac(world.unit * 1.5, world.height * 0.75);
 
 World.add(world.engine.world, [
-    ...Array.from({ length: 6 }, (_, i) =>
-        Pellet(world.unit * 1.5, world.height * 0.75 - i * 25)
+    ...Array.from({ length: 4 }, (_, i) =>
+        Pellet(world.unit * 1.5 + i, world.height * 0.65 - i * 20)
     ),
-    ...Array.from({ length: 5 }, (_, i) =>
-        Pellet(250 + i * 2.5, world.height * 0.25 + i * 20)
+    ...Array.from({ length: 4 }, (_, i) =>
+        Pellet(250 + i, world.height * 0.25 + i * 25)
     ),
     Ghost(262.5, world.height * 0.5),
     Ghost(262.5, world.height * 0.5 + 40),
@@ -190,7 +190,7 @@ document.body.addEventListener('keyup', ({ key }) => {
     const directionVector = controlForcesMapper(key);
     const vector = applyImpulseSpeed(acceleration, maxSpeed, directionVector);
     Vector.magnitude(vector) > 0 && applyForceAtTarget(vector)(pac);
-
+    console.log(vector);
     if (key === ' ') setVelocity(vectors.zero)(pac);
 });
 
@@ -213,6 +213,7 @@ Events.on(world.engine, 'beforeTick', () => {
     if (pac.speed > 0.2)
         measurements.push({
             speed: pac.speed,
+            velocity: pac.velocity,
             pac,
             time: Date.now()
             // keys
@@ -220,6 +221,7 @@ Events.on(world.engine, 'beforeTick', () => {
 });
 
 function measurementsToCharData(measurements) {
+    console.log(measurements);
     return measurements.reduce(
         (acc, { speed, time, keys }, i, arr) =>
             acc.concat(
