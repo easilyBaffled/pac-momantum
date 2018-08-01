@@ -1,20 +1,15 @@
 .yellow {
-    background: #fdff00;
+  background: #fdff00;
 }
 .pink {
-    background: #ea82e5;
+  background: #ea82e5;
 }
 .blue {
-    background: #46bfee;
+  background: #46bfee;
 }
 .red {
-    background: #d03e19;
+  background: #d03e19;
 }
 .orange {
-    background: #db851c;
-}
-
-#chartdiv {
-    width: 100%;
-    height: 200px;
+  background: #db851c;
 }
