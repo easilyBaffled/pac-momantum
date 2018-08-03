@@ -14,10 +14,9 @@ import { colors, lighter, darker } from './colors';
 import GameWorld from './gameWorld';
 import {
     vectors,
-    isCollisionWith,
+    setCollisions,
     setVelocity,
-    applyForceAtTarget,
-    createElementFromHTML
+    applyForceAtTarget
 } from './util';
 
 // Docs http://brm.io/matter-js/docs/
@@ -67,9 +66,9 @@ const Pac = (x, y) => {
         20 // maxSides
     );
 
-    pac.collisionHandler = isCollisionWith(pac)({
+    pac.collisionHandler = setCollisions(pac, {
         pellet() {
-            setVelocity(Vector.mult(this.velocity, world.unit / 3))(this);
+            setVelocity(Vector.mult(this.velocity, world.unit * 0.35), this);
         }
     });
 
@@ -92,7 +91,7 @@ const Pellet = (x, y) => {
         20
     );
 
-    pellet.collisionHandler = isCollisionWith(pellet)({
+    pellet.collisionHandler = setCollisions(pellet, {
         pac() {
             Composite.remove(world.engine.world, this);
         }
@@ -113,7 +112,7 @@ const Ghost = (x, y) => {
         }
     });
 
-    ghost.collisionHandler = isCollisionWith(ghost)({
+    ghost.collisionHandler = setCollisions(ghost, {
         wall() {
             if (Vector.magnitude(this.velocity) > 5) {
                 Composite.remove(world.engine.world, this);
@@ -169,8 +168,11 @@ world.addBodies(
     ...Array.from({ length: 4 }, (_, i) =>
         Pellet(250 + i, world.height * 0.25 + i * 25)
     ),
-    Ghost(262.5, world.height * 0.5),
-    Ghost(262.5, world.height * 0.6),
+    Pellet(134, 20),
+    Ghost(260, world.height * 0.5),
+    Ghost(260, world.height * 0.6),
+    Ghost(260, world.height * 0.7),
+    Ghost(260, world.height * 0.8),
     pac,
     terrain
 );
@@ -196,7 +198,7 @@ document.body.addEventListener('keyup', ({ key }) => keys.push(key));
 
 Events.on(world.engine, 'beforeTick', event => {
     // Use the space key stops player movement right away
-    if (keys.includes(' ')) setVelocity(vectors.zero)(pac);
+    if (keys.includes(' ')) setVelocity(vectors.zero, pac);
     else {
         // Combine all arrow key vectors into one impuls vector
         const nextAccelVector = keys.reduce((finalVector, key) => {
@@ -205,9 +207,9 @@ Events.on(world.engine, 'beforeTick', event => {
 
             return Vector.add(finalVector, directionVector);
         }, vectors.zero);
-        Vector.magnitude(nextAccelVector) > 0 && console.log(nextAccelVector);
+
         Vector.magnitude(nextAccelVector) > 0 &&
-            applyForceAtTarget(nextAccelVector)(pac); // <-- need a way to clamp pac's total speed
+            applyForceAtTarget(nextAccelVector, pac); // <-- need a way to clamp pac's total speed
     }
     // reset down keys
     keys = [];

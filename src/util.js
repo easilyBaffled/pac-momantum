@@ -1,20 +1,4 @@
 import { Vector, Body } from 'matter-js';
-import { curry } from 'lodash';
-/************
-    Set Up
- *************/
-console.clear();
-console.ident = val => (console.log(val), val);
-console.con = curry((val, condition) => {
-    if (condition(val)) console.log(val);
-});
-
-export const withDefault = (obj, defaultFunc) =>
-    new Proxy(obj, {
-        get: (target, name) =>
-            Reflect.get(target, name) || defaultFunc(name, target)
-    });
-
 /*****************
     Matter Util
  *****************/
@@ -26,17 +10,13 @@ export const vectors = {
     zero: Vector.create(0, 0)
 };
 
-export const setVelocity = vector => target => Body.setVelocity(target, vector);
+export const setVelocity = (vector, target) => Body.setVelocity(target, vector);
 
-export const applyVelocity = vector => target =>
-    Body.setVelocity(target, Vector.add(vector, target.velocity));
-
-export const applyForceAtTarget = vector => target => {
+// Assumes you'll always want to apply the force at the center target
+export const applyForceAtTarget = (vector, target) =>
     Body.applyForce(target, target.position, vector);
-    // Body.setAngularVelocity(target, 0);
-};
 
-export const isCollisionWith = self => handlersDict => event => {
+export const setCollisions = (self, handlersDict) => event => {
     const { bodyA, bodyB } = event.pairs.find(
         ({ bodyA, bodyB }) =>
             bodyA.label === self.label || bodyB.label === self.label
@@ -45,11 +25,3 @@ export const isCollisionWith = self => handlersDict => event => {
     handlersDict[target.label] &&
         handlersDict[target.label].bind(self)(target, event);
 };
-
-export function createElementFromHTML(htmlString) {
-    var div = document.createElement('div');
-    div.innerHTML = htmlString.trim();
-
-    // Change this to div.childNodes to support multiple top-level nodes
-    return div.firstChild;
-}
