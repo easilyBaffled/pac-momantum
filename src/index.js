@@ -27,29 +27,27 @@ import {
  ************/
 const world = new GameWorld(400, 400);
 
+// Primary control variables, set asside for easy access
 const acceleration = world.unit * 0.7;
 const maxSpeed = world.unit * 4;
 const friction = acceleration * 0.01;
 
-document.getElementById('app').insertAdjacentHTML(
-    'beforebegin',
-    `<pre>
-    <code id="data">
-      ${JSON.stringify(
-          {
-              acceleration,
-              maxSpeed,
-              friction
-          },
-          null,
-          4
-      )}
-    </code>
-  </pre>`.replace(/(^\s+)(?!")/gm, '')
-);
+// Display galues for debugging
+document.getElementById('control-values').innerText = JSON.stringify(
+    {
+        acceleration,
+        maxSpeed,
+        friction
+    },
+    null,
+    4
+).replace(/(^\s+)(?!")/gm, '');
 
 /****************
-    Play Space
+    Game Bodies
+    Pac - player character
+    Pellet - dots that will boost Pac's accelleration on impact
+    Ghost - non-static balls that will be removed on a hard enough impact with the wall
  ****************/
 
 const Pac = (x, y) => {
@@ -72,7 +70,7 @@ const Pac = (x, y) => {
     pac.collisionHandler = isCollisionWith(pac)({
         pellet() {
             setVelocity(Vector.mult(this.velocity, world.unit / 3))(this);
-        } // best keep the multiplier small, world.unit sends it off screen fast // setVelocity works much better than applyForce, not sure why
+        }
     });
 
     return pac;
@@ -105,13 +103,11 @@ const Pellet = (x, y) => {
 
 const Ghost = (x, y) => {
     const ghost = Bodies.circle(x, y, world.unit * 2, {
-        friction: 0.05,
         frictionAir: 0.03,
-        frictionStatic: 0,
         restitution: 0.5,
         label: 'ghost',
         sleepThreshold: 3000,
-        density: world.unit,
+        density: world.unit * 0.05,
         render: {
             fillStyle: colors.red
         }
@@ -119,7 +115,7 @@ const Ghost = (x, y) => {
 
     ghost.collisionHandler = isCollisionWith(ghost)({
         wall() {
-            if (Vector.magnitude(this.velocity) > 3) {
+            if (Vector.magnitude(this.velocity) > 5) {
                 Composite.remove(world.engine.world, this);
             }
         }
@@ -128,12 +124,20 @@ const Ghost = (x, y) => {
     return ghost;
 };
 
+// Body colision detection
+Events.on(world.engine, 'collisionStart', event =>
+    event.pairs.forEach(({ bodyA, bodyB }) => {
+        bodyA.collisionHandler && bodyA.collisionHandler(event);
+        bodyB.collisionHandler && bodyB.collisionHandler(event);
+    })
+);
+
 /*********************************
     SVG -> Body
  *********************************/
 const halfpipeTemplate = document.querySelector('#halfpipe-svg');
 const halfpipePath = document
-    .importNode(halfpipeTemplate.content, true)
+    .importNode(halfpipeTemplate.content, true) // convert template to element
     .querySelector('path');
 
 const halfpipeVertices = Svg.pathToVertices(halfpipePath, 10);
@@ -153,6 +157,9 @@ const terrain = Bodies.fromVertices(
     true
 );
 
+/****************
+    Game World    
+ ****************/
 const pac = Pac(world.unit * 1.5, world.height * 0.75);
 
 world.addBodies(
@@ -163,20 +170,13 @@ world.addBodies(
         Pellet(250 + i, world.height * 0.25 + i * 25)
     ),
     Ghost(262.5, world.height * 0.5),
-    Ghost(262.5, world.height * 0.5 + 40),
+    Ghost(262.5, world.height * 0.6),
     pac,
     terrain
 );
 
 Engine.run(world.engine);
 Render.run(world.render);
-
-Events.on(world.engine, 'collisionStart', event =>
-    event.pairs.forEach(({ bodyA, bodyB }) => {
-        bodyA.collisionHandler && bodyA.collisionHandler(event);
-        bodyB.collisionHandler && bodyB.collisionHandler(event);
-    })
-);
 
 /***************
     Controles
@@ -187,37 +187,28 @@ const keyForceMapping = {
         ArrowLeft: Vector.mult(vectors.left, acceleration),
         ArrowRight: Vector.mult(vectors.right, acceleration)
     },
-    controlForcesMapper = key => keyForceMapping[key] || vectors.zero;
+    controlForcesMapper = key =>
+        Vector.mult(keyForceMapping[key] || vectors.zero, acceleration);
 
-const applyImpulseSpeed = (impulse, clamp, velocity) => {
-    if (impulse === 0) return velocity;
-
-    const { x, y } = Vector.mult(velocity, impulse);
-
-    return {
-        x: Math.abs(x) > clamp ? Math.sign(x) * clamp : x,
-        y: Math.abs(y) > clamp ? Math.sign(y) * clamp : y
-    };
-};
-
+// collect key presses
 let keys = [];
 document.body.addEventListener('keyup', ({ key }) => keys.push(key));
 
 Events.on(world.engine, 'beforeTick', event => {
+    // Use the space key stops player movement right away
     if (keys.includes(' ')) setVelocity(vectors.zero)(pac);
     else {
+        // Combine all arrow key vectors into one impuls vector
         const nextAccelVector = keys.reduce((finalVector, key) => {
+            // Convert key press to direction vector
             const directionVector = controlForcesMapper(key);
-            const vector = applyImpulseSpeed(
-                acceleration,
-                maxSpeed,
-                directionVector
-            );
-            return Vector.add(finalVector, vector);
-        }, vectors.zero);
 
+            return Vector.add(finalVector, directionVector);
+        }, vectors.zero);
+        Vector.magnitude(nextAccelVector) > 0 && console.log(nextAccelVector);
         Vector.magnitude(nextAccelVector) > 0 &&
-            applyForceAtTarget(nextAccelVector)(pac);
+            applyForceAtTarget(nextAccelVector)(pac); // <-- need a way to clamp pac's total speed
     }
+    // reset down keys
     keys = [];
 });
