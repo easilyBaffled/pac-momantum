@@ -16,12 +16,13 @@ export const setVelocity = (vector, target) => Body.setVelocity(target, vector);
 export const applyForceAtTarget = (vector, target) =>
     Body.applyForce(target, target.position, vector);
 
-export const setCollisions = (self, handlersDict) => event => {
+export const setCollisions = (body, handlersDict) => event => {
     const { bodyA, bodyB } = event.pairs.find(
         ({ bodyA, bodyB }) =>
-            bodyA.label === self.label || bodyB.label === self.label
+            bodyA.label === body.label || bodyB.label === body.label
     );
-    const target = bodyA === self ? bodyB : bodyA;
+    const target = bodyA === body ? bodyB : bodyA;
+
     handlersDict[target.label] &&
-        handlersDict[target.label].bind(self)(target, event);
+        handlersDict[target.label].bind(body)(target, event); // Bind will allow you to use `this` in the Body's collision handler
 };

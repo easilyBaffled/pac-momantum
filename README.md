@@ -8,11 +8,11 @@ This game is an odd physics based mashup between Pac-Man and Pool. Instead of ne
 Build up momentum by charging down long stretches of the maze, slingshot Pac-Man through the looping portals, or get an small burst by eating pellets. 
 Bounce ghosts off one another to pull off fun trick shots. 
 
-You can try the game out [here](https://4005qrw1o9.codesandbox.io/)
+You can try the game out [here](https://codesandbox.io/s/yj0q23xmr1)
 
 <h1 align="center">
 	<br>
-	<img width="360" src="https://uploads.codesandbox.io/uploads/user/d9629477-fb79-47a2-aaf1-7a691f473c65/8Xgv-pac1.gif">
+	<img width="360" src="https://uploads.codesandbox.io/uploads/user/d9629477-fb79-47a2-aaf1-7a691f473c65/-8od-pacv2.gif">
 	<br>
 </h1>
 
