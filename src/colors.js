@@ -9,6 +9,7 @@ export const colors = {
     orange: '#db851c'
 };
 
+// Use functions to tweak colors, rather than keeping track of all of the hexcodes
 // HSL L - black = 0, white = 1
 export const lighter = (color, percent = 5) =>
     updateHexLum(color, percent > 0 ? percent : -percent);

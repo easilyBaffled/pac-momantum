@@ -8,11 +8,11 @@ This game is an odd physics based mashup between Pac-Man and Pool. Instead of ne
 Build up momentum by charging down long stretches of the maze, slingshot Pac-Man through the looping portals, or get an small burst by eating pellets. 
 Bounce ghosts off one another to pull off fun trick shots. 
 
-You can try the game out [here](https://codesandbox.io/s/yj0q23xmr1)
+You can try the game out [here](https://4005qrw1o9.codesandbox.io/)
 
 <h1 align="center">
 	<br>
-	<img width="360" src="https://uploads.codesandbox.io/uploads/user/d9629477-fb79-47a2-aaf1-7a691f473c65/-8od-pacv2.gif">
+	<img width="360" src="http://www.giphy.com/gifs/1i5nHBY9MgtoYSikvI">
 	<br>
 </h1>
 
@@ -22,3 +22,12 @@ I want to see how much code it takes to set up a basic physics simulation and wh
 
 ## codesandbox.io
 I have also been taking this opportunity to try [codesandbox.io](codesandbox.io). It is a powerful text editor for the web on the web. I normally use Webstorm, but this has been a nice change of pace. You can check out the project [here](https://codesandbox.io/s/4005qrw1o9)
+
+# Project Files 
+
+## /src
+Javascript modules 
+`colors.js` - Module holding the primary project colors and utilities to adjust them. 
+`gameWorld.js` - Module wrapper around the `engine` to simplify setup and collect commonly needed values.
+`index.js` - Main file to run the game. The code that’s in here instead of a util is because it’s likely to change a lot.
+`util.js` - and and all commonly used functions and objects that refuse grouping into something more specific, like `colors.js`
